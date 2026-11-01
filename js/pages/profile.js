@@ -11,6 +11,7 @@ import { currentLeague } from '../core/gamification.js';
 import { buildRescuePlan } from '../core/rescue.js';
 import { weakTopics } from '../core/review.js';
 import { SUBJECTS, comboLabel } from '../data/subjects.js';
+import { activeAccount, formatPhone, logout as endSession } from '../core/auth.js';
 
 function chart(log) {
   if (log.length < 2) return `<p class="muted">${t('noDataYet')}</p>`;
@@ -87,7 +88,17 @@ export default {
       </div>
     </div>`;
 
-    return `<div class="title">👤 ${t('profileTitle')}</div>${stats}${chartCard}${weakCard}${rescueForm}${settings}`;
+    const acc = activeAccount();
+    const accountCard = `<div class="card">
+      <h2>🪪 ${t('authAccount')}</h2>
+      <p><b>${esc(acc && acc.name ? acc.name : t('authNoName'))}</b> · ${esc(formatPhone(acc ? acc.phone : ''))}</p>
+      <p class="muted">${t('authWhere')}</p>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost" data-action="logout">🚪 ${t('authLogout')}</button>
+      </div>
+    </div>`;
+
+    return `<div class="title">👤 ${t('profileTitle')}</div>${accountCard}${stats}${chartCard}${weakCard}${rescueForm}${settings}`;
   },
 
   actions: {
@@ -117,6 +128,12 @@ export default {
     },
     resetAll() {
       if (confirm(t('confirmReset'))) { reset(); location.reload(); }
+    },
+    logout() {
+      if (!confirm(t('authConfirmLogout'))) return;
+      endSession();
+      location.hash = '#/home';
+      location.reload();
     },
   },
 };
