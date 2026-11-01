@@ -1,0 +1,4 @@
+# Netlify: статика без сборки — npm install и build-команда не нужны.
+# Публикуется корень репозитория (index.html + css/ + js/).
+[build]
+  publish = "."
