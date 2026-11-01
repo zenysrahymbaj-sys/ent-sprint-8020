@@ -10,12 +10,14 @@ import { userWeights } from '../core/predictor.js';
 import { OFFICIAL, BY_SUBJECT } from '../data/resources.js';
 
 function entryHtml(r) {
+  // ok === false => адрес проверялся, но недоступен: предупреждаем, а не молчим
+  const warn = r.url && r.ok === false ? `<span class="badge warn">⚠ ${t('resUnreachable')}</span>` : '';
   const link = r.url
-    ? `<a class="btn" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${t('resOpen')} ↗</a>`
+    ? `<a class="btn ${r.ok === false ? 'ghost' : ''}" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${t('resOpen')} ↗</a>`
     : `<div class="row"><button class="btn ghost" disabled>➕ ${t('resManual')}</button>
        <span class="manual-note">${t('resManualNote')}</span></div>`;
   return `<div class="res-item">
-    <div class="res-title">${esc(bi(r.title))}</div>
+    <div class="res-title">${esc(bi(r.title))} ${warn}</div>
     <p class="muted"><b>${t('resWhat')}:</b> ${esc(bi(r.what))}</p>
     <p class="muted"><b>${t('resHow')}:</b> ${esc(bi(r.how))}</p>
     <div style="margin-top:8px">${link}</div>
