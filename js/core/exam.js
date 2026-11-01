@@ -4,10 +4,17 @@
 // не сбрасывает экзамен, таймер считается от endsAt.
 // ============================================================
 
-import { EXAM, CREATIVE_COMBO } from '../config.js';
+import { EXAM, CREATIVE_COMBO, BLOCK_MINIMUMS } from '../config.js';
 import { userWeights } from './predictor.js';
 import { SUBJECTS } from '../data/subjects.js';
 import { load, save } from './storage.js';
+import { isCorrect } from './qtype.js';
+
+// Минимум правильных ответов для блока: обязательные по своему значению,
+// любой профильный предмет — BLOCK_MINIMUMS.profile
+export function blockMinimum(subjectId) {
+  return BLOCK_MINIMUMS[subjectId] ?? BLOCK_MINIMUMS.profile;
+}
 
 // Собираем 120 слотов: веса предметов из predictor (20+10+10+40+40).
 // Банк v1 — по 10 вопросов на предмет, поэтому вопросы циклично
@@ -67,10 +74,15 @@ export function gradeExam(session) {
     if (!q) return;
     const b = bySubject[slot.subjectId] || (bySubject[slot.subjectId] = { correct: 0, total: 0 });
     b.total += 1;
-    if (session.answers[i] === q.answer) { b.correct += 1; correct += 1; }
+    if (isCorrect(q, session.answers[i])) { b.correct += 1; correct += 1; }
   });
   const score = Math.round(correct * (EXAM.maxScore / EXAM.totalQuestions) * 10) / 10;
-  return { correct, total: session.questions.length, score, bySubject };
+  // минимум правильных по блокам — отдельное условие поступления, балл его не отменяет
+  const minimums = Object.entries(bySubject).map(([id, b]) => ({
+    id, correct: b.correct, total: b.total, min: blockMinimum(id),
+    ok: b.correct >= blockMinimum(id),
+  }));
+  return { correct, total: session.questions.length, score, bySubject, minimums };
 }
 
 // Завершение: результат в историю, ошибки в журнал, балл на график, очки
@@ -90,7 +102,7 @@ export function finishExam() {
   // ошибки пробника — в журнал повторений (без дублей, cap 200 в review.js)
   session.questions.forEach((slot, i) => {
     const q = resolveQuestion(slot);
-    if (q && session.answers[i] !== null && session.answers[i] !== q.answer) {
+    if (q && session.answers[i] !== null && !isCorrect(q, session.answers[i])) {
       recordError(slot.subjectId, q.id, bi(q.topic));
     }
   });

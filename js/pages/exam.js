@@ -9,6 +9,7 @@ import { load, save } from '../core/storage.js';
 import { EXAM, CREATIVE_COMBO } from '../config.js';
 import { SUBJECTS } from '../data/subjects.js';
 import { startExam, activeExam, resolveQuestion, gradeExam, finishExam } from '../core/exam.js';
+import { qType, isCorrect, answerLetters, answerSet } from '../core/qtype.js';
 
 let lastGrade = null;   // результат только что завершённого пробника
 let gridOpen = false;
@@ -44,10 +45,16 @@ function runningView(session) {
   const q = resolveQuestion(slot);
   const letters = ['A', 'B', 'C', 'D'];
   const opts = q ? bi(q.options) : [];
+  const multi = q ? qType(q) === 'multiple' : false;
   const picked = session.answers[i];
+  const isPicked = (k) => Array.isArray(picked) ? picked.includes(k) : picked === k;
   const optBtns = opts.map((o, k) =>
-    `<button class="opt ${picked === k ? 'selected' : ''}" data-action="pick" data-idx="${k}"><b>${letters[k]}.</b> ${esc(o)}</button>`).join('');
+    `<button class="opt ${isPicked(k) ? 'selected' : ''}" data-action="pick" data-idx="${k}"><b>${letters[k]}.</b> ${esc(o)}</button>`).join('');
   const flagged = session.flagged.includes(i);
+  const badges = [];
+  if (multi) badges.push(`<span class="badge">${t('taskMultiple')}</span>`);
+  if (q && q.difficulty) badges.push(`<span class="badge">${t('difficulty')} ${esc(q.difficulty)}</span>`);
+  const meta = badges.join(' ');
 
   const grid = gridOpen ? `<div class="exam-grid">
     ${session.questions.map((_, k) => {
@@ -64,7 +71,9 @@ function runningView(session) {
       <span class="timer" id="examTimer">${fmtLeft(session.endsAt - Date.now())}</span>
     </div>
     <p class="muted">${t('examQuestion', { i: i + 1, n: session.questions.length })}</p>
+    ${meta ? `<div class="row" style="margin-bottom:6px">${meta}</div>` : ''}
     <div class="q-text">${q ? esc(bi(q.text)) : '—'}</div>
+    ${multi ? `<p class="muted">${t('sprintMultiHint')}</p>` : ''}
     <div class="opt-grid">${optBtns}</div>
     <div class="row" style="margin-top:12px">
       <button class="btn ghost" data-action="prev" ${i === 0 ? 'disabled' : ''}>←</button>
@@ -79,23 +88,32 @@ function runningView(session) {
 
 function resultView() {
   const g = lastGrade;
-  const rows = Object.entries(g.bySubject).map(([id, b]) =>
-    `<div class="threshold-row"><span>${SUBJECTS[id]?.icon || ''} ${esc(bi(SUBJECTS[id]?.name) || id)}</span>
-      <span>${b.correct}/${b.total}</span></div>`).join('');
+  const rows = (g.minimums || []).map(m =>
+    `<div class="threshold-row">
+      <span>${SUBJECTS[m.id]?.icon || ''} ${esc(bi(SUBJECTS[m.id]?.name) || m.id)}</span>
+      <span>${m.correct}/${m.total} · ${t('examBlockMin', { n: m.min })} ${m.ok ? '✅' : '🚫'}</span>
+    </div>`).join('');
   const wrong = g.reviewWrong || [];
+  const optsOf = (w) => w.correctIdx.map(i => `${['A', 'B', 'C', 'D'][i]}. ${esc(bi(w.options)[i])}`).join(' · ');
   const review = wrong.length
     ? `<h3>${t('examReviewTitle')}</h3>` + wrong.map(w => `<div class="card">
         <p class="muted">${esc(bi(w.subject))} · ${esc(bi(w.topic))}</p>
         <div class="q-text">${esc(bi(w.text))}</div>
-        <p><span class="badge ok">${['A', 'B', 'C', 'D'][w.answer]}. ${esc(bi(w.options)[w.answer])}</span></p>
+        <p><span class="badge ok">${esc(w.answer)}</span> ${optsOf(w)}</p>
         <div class="explain">💡 ${esc(bi(w.explain))}</div>
       </div>`).join('')
     : `<p class="muted">${t('examNoErrors')}</p>`;
+  const failed = (g.minimums || []).filter(m => !m.ok);
+  const failedNames = failed.map(f => esc(bi(SUBJECTS[f.id]?.name) || f.id)).join(', ');
+  const minWarn = failed.length
+    ? `<p class="muted">⚠️ ${t('examMinFail', { blocks: failedNames })}</p>`
+    : '';
   return `<div class="card" style="text-align:center">
     <h2>${t('examResultTitle')}</h2>
     <div class="score-big">${g.score}</div>
     <p class="muted">${t('examScoreLine', { s: g.score })} · ${t('examCorrectLine', { c: g.correct, n: g.total })}</p>
     <p class="muted">${t('examPoints', { p: g.correct * 2 })}</p>
+    ${minWarn}
   </div>
   <div class="card"><h3>${t('examBySubject')}</h3>${rows}</div>
   ${review}
@@ -145,7 +163,16 @@ export default {
     pick(el) {
       const st = load(); if (!st.exam) return;
       const i = st.exam.cur || 0;
-      st.exam.answers[i] = Number(el.dataset.idx);
+      const q = resolveQuestion(st.exam.questions[i]);
+      const idx = Number(el.dataset.idx);
+      if (q && qType(q) === 'multiple') {
+        const cur = Array.isArray(st.exam.answers[i]) ? st.exam.answers[i] : [];
+        const next = cur.includes(idx) ? cur.filter(x => x !== idx) : [...cur, idx].sort((a, b) => a - b);
+        // снятый до конца ответ — снова «нет ответа», иначе сетка врёт
+        st.exam.answers[i] = next.length ? next : null;
+      } else {
+        st.exam.answers[i] = idx;
+      }
       save({ exam: st.exam });
       window.__rerender();
     },
@@ -170,10 +197,11 @@ export default {
       st.exam.questions.forEach((slot, i) => {
         const q = resolveQuestion(slot);
         // в разбор идут только ОТВЕЧЕННЫЕ неверно (пропуски — не «ошибка знания»)
-        if (q && st.exam.answers[i] !== null && st.exam.answers[i] !== q.answer) {
+        if (q && st.exam.answers[i] !== null && !isCorrect(q, st.exam.answers[i])) {
           grade.reviewWrong.push({
             subject: SUBJECTS[slot.subjectId]?.name, topic: q.topic,
-            text: q.text, options: q.options, answer: q.answer, explain: q.explain,
+            text: q.text, options: q.options, answer: answerLetters(q),
+            correctIdx: answerSet(q), explain: q.explain,
           });
         }
       });

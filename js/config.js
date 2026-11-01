@@ -23,6 +23,16 @@ export const MANDATORY = [
 // Каждый профильный предмет даёт 40 заданий
 export const PROFILE_QUESTIONS = 40;
 
+// Минимум правильных ответов по блокам (Правила проведения ЕНТ):
+// ниже порога — результат аннулируется независимо от общего балла.
+// Обязательные блоки заданы по id, профильные общие для всех.
+export const BLOCK_MINIMUMS = {
+  'history-kz': 5,
+  'reading': 3,
+  'math-lit': 3,
+  profile: 5,
+};
+
 // 12 комбинаций профильных предметов + творческий режим
 export const COMBOS = [
   { id: 'math+physics',      subjects: ['math', 'physics'] },

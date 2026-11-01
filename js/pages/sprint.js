@@ -6,11 +6,12 @@
 
 import { t, bi, esc, toast } from '../ui.js';
 import { load, save } from '../core/storage.js';
-import { EXAM, MANDATORY, CREATIVE_COMBO } from '../config.js';
+import { EXAM, CREATIVE_COMBO, REVIEW_DAYS } from '../config.js';
 import { SUBJECTS } from '../data/subjects.js';
 import { userWeights } from '../core/predictor.js';
 import { addCorrectPoints, logScore } from '../core/gamification.js';
 import { recordError, dueReviews, completeReview } from '../core/review.js';
+import { qType, isCorrect, answerSet, answerLetters } from '../core/qtype.js';
 
 // Состояние сессии живёт в модуле (SPA не перезагружает страницу)
 let session = null;
@@ -46,7 +47,7 @@ function startSession(subjectId, topicText) {
   if (!list.length) return null;
   if (timerId) clearInterval(timerId);
   session = {
-    subjectId, list, idx: 0, correct: 0, answered: false, lastPick: null,
+    subjectId, list, idx: 0, correct: 0, answered: false, lastPick: null, picks: [],
     remaining: EXAM.sprintSeconds, phase: 'quiz', reviewMode: false,
   };
   return session;
@@ -66,12 +67,39 @@ function startReviewSession() {
   if (timerId) clearInterval(timerId);
   session = {
     subjectId: list[0].subjectId, list, idx: 0, correct: 0, answered: false,
+    lastPick: null, picks: [],
     remaining: EXAM.sprintSeconds, phase: 'quiz', reviewMode: true,
   };
   return session;
 }
 
 function fmtTime(s) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+
+function curQuestion() {
+  const entry = session.reviewMode ? session.list[session.idx] : null;
+  return entry ? entry.q : session.list[session.idx];
+}
+
+// Проверка и учёт ответа: одиночный выбор — один индекс, множественный — набор
+function gradePick() {
+  const entry = session.reviewMode ? session.list[session.idx] : null;
+  const q = curQuestion();
+  const subjectId = entry ? entry.subjectId : session.subjectId;
+  session.answered = true;
+  const ok = qType(q) === 'multiple' ? isCorrect(q, session.picks) : isCorrect(q, session.lastPick);
+  if (ok) { session.correct += 1; addCorrectPoints(); }
+  else { recordError(subjectId, q.id, bi(q.topic)); }
+  if (session.reviewMode && entry) {
+    // любое засчитанное повторение закрывает ближайший неотмеченный интервал
+    const e = load().errors.find(x => x.key === entry.key);
+    if (e) { const next = REVIEW_DAYS.find(d => !e.reviews.includes(d)); if (next) completeReview(entry.key, next); }
+  }
+  const st = load();
+  const s = st.stats[subjectId] || { correct: 0, total: 0 };
+  s.total += 1; if (ok) s.correct += 1;
+  save({ stats: { ...st.stats, [subjectId]: s } });
+  window.__rerender();
+}
 
 function finish() {
   if (timerId) { clearInterval(timerId); timerId = null; }
@@ -96,16 +124,29 @@ function quizView() {
   const subjectName = bi(SUBJECTS[session.reviewMode ? session.list[session.idx].subjectId : session.subjectId].name);
   const opts = bi(q.options);
   const letters = ['A', 'B', 'C', 'D'];
-  const answeredCls = (i) => {
-    if (!session.answered) return '';
-    if (i === q.answer) return 'correct';
-    if (i === session.lastPick) return 'wrong';
+  const multi = qType(q) === 'multiple';
+  const correctSet = answerSet(q);
+  const picked = multi ? session.picks : (session.lastPick === null ? [] : [session.lastPick]);
+  const optCls = (i) => {
+    if (!session.answered) return multi && picked.includes(i) ? 'selected' : '';
+    if (correctSet.includes(i)) return 'correct';
+    if (picked.includes(i)) return 'wrong';
     return 'dim';
   };
   const buttons = opts.map((o, i) =>
-    `<button class="opt ${answeredCls(i)}" ${session.answered ? 'disabled' : ''}
-      data-action="answer" data-idx="${i}"><b>${letters[i]}.</b> ${esc(o)}</button>`).join('');
-  const expl = session.answered ? `<div class="explain">💡 <b>${t('sprintExplain')}:</b> ${esc(bi(q.explain))}</div>` : '';
+    `<button class="opt ${optCls(i)}" ${session.answered ? 'disabled' : ''}
+      data-action="${multi ? 'toggle' : 'answer'}" data-idx="${i}"><b>${letters[i]}.</b> ${esc(o)}</button>`).join('');
+  const typeBadge = multi ? ` · <span class="badge">${t('taskMultiple')}</span>` : '';
+  const diffBadge = q.difficulty ? ` · <span class="badge">${t('difficulty')} ${esc(q.difficulty)}</span>` : '';
+  const hint = multi && !session.answered ? `<p class="muted">${t('sprintMultiHint')}</p>` : '';
+  const confirmBtn = multi && !session.answered
+    ? `<div style="margin-top:12px"><button class="btn big" data-action="confirm" ${picked.length ? '' : 'disabled'}>${t('sprintMultiConfirm')}</button></div>` : '';
+  const multiOk = isCorrect(q, session.picks);
+  const expl = session.answered
+    ? `<div class="explain">💡 <b>${t('sprintExplain')}:</b> ${esc(bi(q.explain))}${multi
+        ? ` <span class="badge ${multiOk ? 'ok' : 'warn'}">${multiOk ? t('sprintPoint1') : t('sprintPoint0')}</span> <span class="badge ok">${answerLetters(q)}</span>`
+        : ''}</div>`
+    : '';
   const isLast = session.idx + 1 >= session.list.length;
   const nextBtn = session.answered
     ? `<button class="btn big" data-action="next" style="margin-top:12px">${isLast ? '🏁 ' + t('sprintResult') : '→ ' + t('sprintQuestion', { i: session.idx + 2, n: session.list.length })}</button>` : '';
@@ -115,10 +156,10 @@ function quizView() {
       <span class="timer" id="sprintTimer">${fmtTime(Math.max(0, session.remaining))}</span>
     </div>
     <div class="progress"><div style="width:${(session.idx / session.list.length) * 100}%"></div></div>
-    <p class="muted">${t('sprintQuestion', { i: session.idx + 1, n: session.list.length })} · ${t('microTopic')}: ${esc(bi(q.topic))}</p>
+    <p class="muted">${t('sprintQuestion', { i: session.idx + 1, n: session.list.length })} · ${t('microTopic')}: ${esc(bi(q.topic))}${typeBadge}${diffBadge}</p>
     <div class="q-text">${esc(bi(q.text))}</div>
     <div class="opt-grid">${buttons}</div>
-    ${expl}${nextBtn}
+    ${hint}${expl}${confirmBtn}${nextBtn}
   </div>`;
 }
 
@@ -197,31 +238,30 @@ export default {
       window.__rerender();
     },
     answer(el) {
+      if (!session || session.answered || qType(curQuestion()) === 'multiple') return;
+      session.lastPick = Number(el.dataset.idx);
+      session.picks = [session.lastPick];
+      gradePick();
+    },
+    toggle(el) {
       if (!session || session.answered) return;
       const idx = Number(el.dataset.idx);
-      const entry = session.reviewMode ? session.list[session.idx] : null;
-      const q = entry ? entry.q : session.list[session.idx];
-      const subjectId = entry ? entry.subjectId : session.subjectId;
-      session.answered = true;
-      session.lastPick = idx;
-      const ok = idx === q.answer;
-      if (ok) { session.correct += 1; addCorrectPoints(); }
-      else { recordError(subjectId, q.id, bi(q.topic)); }
-      if (session.reviewMode) {
-        // любое засчитанное повторение закрывает ближайший неотмеченный интервал
-        const e = load().errors.find(x => x.key === entry.key);
-        if (e) { const next = [1, 3, 7, 14].find(d => !e.reviews.includes(d)); if (next) completeReview(entry.key, next); }
-      }
-      // статистика предмета
-      const st = load();
-      const s = st.stats[subjectId] || { correct: 0, total: 0 };
-      s.total += 1; if (ok) s.correct += 1;
-      save({ stats: { ...st.stats, [subjectId]: s } });
+      session.picks = session.picks.includes(idx)
+        ? session.picks.filter(x => x !== idx)
+        : [...session.picks, idx].sort((a, b) => a - b);
       window.__rerender();
+    },
+    confirm() {
+      if (!session || session.answered || !session.picks.length) return;
+      gradePick();
     },
     next() {
       if (session.idx + 1 >= session.list.length) finish();
-      else { session.idx += 1; session.answered = false; session.lastPick = null; window.__rerender(); }
+      else {
+        session.idx += 1; session.answered = false;
+        session.lastPick = null; session.picks = [];
+        window.__rerender();
+      }
     },
     again() {
       if (timerId) { clearInterval(timerId); timerId = null; }
