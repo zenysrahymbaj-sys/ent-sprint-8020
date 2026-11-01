@@ -47,12 +47,15 @@ export function load() {
   const phone = activePhone();
   if (cache && cachePhone === phone) return cache;
   const legacy = readLegacy() || {};
-  const device = { lang: legacy.lang, theme: legacy.theme, ...readDevice() }; // экран входа тоже помнит выбор языка
+  // Язык берём из старого ключа: выбор RU/KZ всегда был осознанным. Тему —
+  // нет: до редизайна «light» писалась автоматически, и читать её обратно
+  // означало бы навсегда оставить человека вне тёмной темы по умолчанию.
+  const device = { lang: legacy.lang, ...readDevice() }; // экран входа тоже помнит выбор языка
   const picked = {};
   if (device.lang) picked.lang = device.lang;
   if (device.theme) picked.theme = device.theme;
   const own = phone ? (readJson(dataKeyFor(phone)) || legacyFor(phone)) : {};
-  cache = { ...structuredClone(DEFAULT_STATE), lang: 'ru', theme: 'light', ...picked, ...own, phone };
+  cache = { ...structuredClone(DEFAULT_STATE), lang: 'ru', theme: 'dark', ...picked, ...own, phone };
   cachePhone = phone;
   return cache;
 }
