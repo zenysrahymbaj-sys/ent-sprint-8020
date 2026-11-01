@@ -50,8 +50,8 @@ export default {
       id: 'fl-c4',
       title: { ru: 'Предлоги времени: in/on/at', kz: 'Уақыт предлогтары: in/on/at' },
       back: {
-        ru: 'at — точное время (at 5 o\'clock, at night). on — дни и даты (on Monday, on 5 May). in — месяцы/сезоны/годы и части дня (in July, in winter, in the morning). «Понедельник» всегда требует on.',
-        kz: 'at — нақты уақыт (at 5 o\'clock, at night). on — күн мен дата (on Monday, on 5 May). in — ай/маусым/жыл және күн бөліктері (in July, in winter, in the morning). «Дүйсенбі» әрқашан on талап етеді.',
+        ru: 'at — точное время (at 5 o\'clock, at night). on — дни и даты (on Monday, on 5 May). in — месяцы/сезоны/годы и части дня (in July, in winter, in the morning). Дни недели обычно берут on, но есть и другие конструкции: from Monday to Friday, by Monday, on Monday morning — выбирайте предлог по смыслу, а не по шаблону.',
+        kz: 'at — нақты уақыт (at 5 o\'clock, at night). on — күн мен дата (on Monday, on 5 May). in — ай/маусым/жыл және күн бөліктері (in July, in winter, in the morning). Апта күндері әдетте on алады, бірақ басқа құрылымдар да бар: from Monday to Friday, by Monday, on Monday morning — предлогті үлгіден емес, мағынадан таңдаңыз.',
       },
       draft: true,
     },
@@ -73,8 +73,8 @@ export default {
       id: 'fl-q1',
       topic: { ru: 'Артикли', kz: 'Артикльдер' },
       text: {
-        ru: 'Choose the correct article: "I saw ___ elephant at the zoo."',
-        kz: 'Дұрыс артикльді таңдаңыз: "I saw ___ elephant at the zoo."',
+        ru: 'Choose the correct article: "At the zoo I saw ___ elephant among other animals."',
+        kz: 'Дұрыс артикльді таңдаңыз: "At the zoo I saw ___ elephant among other animals."',
       },
       options: {
         ru: ['a', 'the', 'an', '(no article)'],
@@ -82,8 +82,8 @@ export default {
       },
       answer: 2,
       explain: {
-        ru: '«Elephant» начинается с гласного звука, поэтому нужен an. Правило смотрит на звук, а не на букву.',
-        kz: '«Elephant» дауысты дыбыстан басталғандықтан an қажет. Ереже әріпке емес, дыбысқа қарайды.',
+        ru: '«Elephant» начинается с гласного звука, поэтому нужен an. Правило смотрит на звук, а не на букву. «The» не подходит: слон упоминается впервые, он один из многих («among other animals»).',
+        kz: '«Elephant» дауысты дыбыстан басталғандықтан an қажет. Ереже әріпке емес, дыбысқа қарайды. «The» жарамсыз: піл алғаш аталып тұр, ол — көптің бірі («among other animals»).',
       },
       draft: true,
     },
@@ -185,13 +185,15 @@ export default {
         kz: "Сөйлемді толықтырыңыз: \"I ___ my keys, so I can't open the door.\"",
       },
       options: {
-        ru: ['have lost', 'lose', 'am lose', 'will losing'],
-        kz: ['have lost', 'lose', 'am lose', 'will losing'],
+        ru: ['have lost', 'loses', 'am lose', 'will losing'],
+        kz: ['have lost', 'loses', 'am lose', 'will losing'],
       },
       answer: 0,
       explain: {
-        ru: 'Есть результат в настоящем (не могу открыть) → Present Perfect: have + V3 = have lost. Остальные формы грамматически неверны.',
-        kz: 'Нәтиже осы шақта бар (есікті аша алмаймын) → Present Perfect: have + V3 = have lost. Қалғаны грамматикалық қате.',
+        // Дистракторы заведомо не сочетаются с подлежащим I / с формой глагола,
+        // поэтому верный ответ ровно один.
+        ru: 'Есть результат в настоящем (не могу открыть) → Present Perfect: have + V3 = have lost. Остальные формы не сочетаются с «I» («loses», «am lose», «will losing» — грамматически невозможны).',
+        kz: 'Нәтиже осы шақта көрініп тұр (есікті аша алмаймын) → Present Perfect: have + V3 = have lost. Қалған нұсқалар «I» тікелей бастауышпен қатар жүрмейді («loses», «am lose», «will losing» — грамматикалық тұрғыдан мүмкін емес).',
       },
       draft: true,
     },
