@@ -46,18 +46,16 @@ function runningView(session) {
   const opts = q ? bi(q.options) : [];
   const picked = session.answers[i];
   const optBtns = opts.map((o, k) =>
-    `<button class="opt ${picked === k ? 'correct' : ''}" data-action="pick" data-idx="${k}"><b>${letters[k]}.</b> ${esc(o)}</button>`).join('');
+    `<button class="opt ${picked === k ? 'selected' : ''}" data-action="pick" data-idx="${k}"><b>${letters[k]}.</b> ${esc(o)}</button>`).join('');
   const flagged = session.flagged.includes(i);
 
-  const grid = gridOpen ? `<div class="exam-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:5px;margin-top:10px">
+  const grid = gridOpen ? `<div class="exam-grid">
     ${session.questions.map((_, k) => {
-      const answered = session.answers[k] !== null;
-      const flag = session.flagged.includes(k);
-      const style = `border:1px solid var(--border);border-radius:6px;padding:6px 0;text-align:center;cursor:pointer;font-size:12px;` +
-        (k === i ? 'outline:2px solid var(--accent);' : '') +
-        (answered ? 'background:rgba(79,109,245,.25);' : '') +
-        (flag ? 'box-shadow:inset 0 0 0 2px orange;' : '');
-      return `<div style="${style}" data-action="goto" data-idx="${k}">${k + 1}</div>`;
+      const cls = ['exam-cell'];
+      if (session.answers[k] !== null) cls.push('answered');
+      if (session.flagged.includes(k)) cls.push('flagged');
+      if (k === i) cls.push('current');
+      return `<div class="${cls.join(' ')}" data-action="goto" data-idx="${k}">${k + 1}</div>`;
     }).join('')}</div>` : '';
 
   return `<div class="card">

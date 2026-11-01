@@ -105,6 +105,8 @@ main { max-width: 720px; margin: 0 auto; padding: 14px; }
 /* ---------- Чипы предметов ---------- */
 .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 38px; /* удобная зона нажатия на телефоне */
   padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border);
   background: var(--surface); color: var(--muted); cursor: pointer; font-size: 13px;
 }
@@ -121,6 +123,8 @@ main { max-width: 720px; margin: 0 auto; padding: 14px; }
 }
 .opt.correct { border-color: var(--green); background: rgba(34,165,91,.15); }
 .opt.wrong { border-color: var(--red); background: rgba(224,72,62,.15); }
+/* выбранный вариант в пробнике: нейтральная подсветка, чтобы не выглядело как «верно» */
+.opt.selected { border-color: var(--accent); background: rgba(79,109,245,.15); }
 .opt.dim { opacity: .55; }
 .explain { margin-top: 12px; padding: 12px; border-radius: 10px; background: rgba(79,109,245,.08); font-size: 14px; line-height: 1.4; }
 .progress { height: 6px; border-radius: 3px; background: var(--border); margin: 8px 0; overflow: hidden; }
@@ -138,8 +142,12 @@ main { max-width: 720px; margin: 0 auto; padding: 14px; }
   padding: 6px 2px calc(6px + env(safe-area-inset-bottom));
 }
 .tabbar a {
+  /* flex:1 + min-width:0 — на узких экранах (320px) подписи переносятся,
+     а не обрезают последнюю вкладку */
+  flex: 1 1 0; min-width: 0;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  text-decoration: none; color: var(--muted); font-size: 10px; padding: 4px 6px;
+  text-decoration: none; color: var(--muted); font-size: 10px; padding: 4px 2px;
+  line-height: 1.15; text-align: center; overflow-wrap: break-word;
 }
 .tabbar a.active { color: var(--accent); font-weight: 600; }
 
@@ -168,6 +176,23 @@ label.field { display: block; font-size: 13px; color: var(--muted); margin: 10px
 input[type="number"], input[type="date"], input[type="text"], select {
   width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--surface); color: var(--text); font-size: 15px;
+}
+
+/* ---------- Полный пробник ---------- */
+.exam-grid {
+  display: grid; gap: 5px; margin-top: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+}
+.exam-grid > div {
+  border: 1px solid var(--border); border-radius: 6px; padding: 6px 0;
+  text-align: center; cursor: pointer; font-size: 12px;
+}
+.exam-grid > div.answered { background: rgba(79,109,245,.25); }
+.exam-grid > div.flagged { box-shadow: inset 0 0 0 2px orange; }
+.exam-grid > div.current { outline: 2px solid var(--accent); }
+@media (max-width: 380px) {
+  .exam-grid { grid-template-columns: repeat(auto-fill, minmax(27px, 1fr)); gap: 4px; }
+  .exam-grid > div { font-size: 11px; padding: 5px 0; }
 }
 
 /* ---------- Toast ---------- */
