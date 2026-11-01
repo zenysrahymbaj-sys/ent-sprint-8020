@@ -7,6 +7,11 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- Декоративные слои: дрейфующие цветные пятна и подсветка за курсором.
+       aria-hidden — экраном чтения игнорируются, под контентом (z-index:-1). -->
+  <div class="fx" aria-hidden="true"><span class="b1"></span><span class="b2"></span><span class="b3"></span></div>
+  <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
   <!-- Шапка: логотип, переключатель RU/KZ, переключатель темы -->
   <header class="topbar">
     <a href="#/home" class="logo">⚡ <span data-i18n="appTitle">ЕНТ-Спринт</span> <span class="logo-tag">80/20</span></a>

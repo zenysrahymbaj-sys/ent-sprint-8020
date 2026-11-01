@@ -42,11 +42,23 @@ function thresholdsBlock(score) {
   return `<h3>${t('thresholdsTitle')}</h3>${rows}`;
 }
 
+// Крупный типографический фокус: каждая строка въезжает со своей задержкой (--d)
+function heroBlock(sub) {
+  return `<div class="hero">
+    <div class="hero-kicker flip" style="--d:0s">⚡ ${t('kickerPareto')}</div>
+    <h1 class="hero-title">
+      <span class="flip" style="--d:.08s">${t('appTitle')}</span>
+      <span class="grad flip" style="--d:.18s">80/20</span>
+    </h1>
+    ${sub ? `<p class="hero-sub flip" style="--d:.3s">${sub}</p>` : ''}
+  </div>`;
+}
+
 export default {
   render() {
     const st = load();
     if (!st.combo) {
-      return `<div class="title">${t('appTitle')} · <span style="color:var(--accent)">80/20</span></div>
+      return `${heroBlock()}
         <div class="card muted">${t('tagline')}</div>${comboPicker()}`;
     }
 
@@ -58,7 +70,7 @@ export default {
     const due = dueReviews().length;
     const plan = st.rescue && !isCreative ? st.rescue : null;
 
-    const hero = `<div class="card" style="text-align:center">
+    const daysCard = `<div class="card" style="text-align:center">
       <div class="score-big">${days >= 0 ? days : 0}</div>
       <div class="muted">${t('daysToExam')} · ${esc(date)}</div>
       <div class="row" style="justify-content:center;margin-top:10px">
@@ -92,9 +104,9 @@ export default {
         <span>${p.cardsPerDay} ${t('planCards')} · ${p.tasksPerDay} ${t('planTasks')}</span></div>`).join('')}
     </div>` : (!isCreative ? `<p class="muted" style="margin-bottom:12px">${t('planNone')}.</p>` : '');
 
-    return `<div class="title">${t('appTitle')} · <span style="color:var(--accent)">80/20</span></div>
+    return `${heroBlock()}
       <div class="card muted">🎯 ${t('tagline')} · ${t('comboLabel')}: <b>${isCreative ? t('creativeMode') : labelOf(st.combo)}</b></div>
-      ${hero}${forecast}${sprintCta}${planCard}`;
+      ${daysCard}${forecast}${sprintCta}${planCard}`;
   },
 
   actions: {

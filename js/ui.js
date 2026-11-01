@@ -30,13 +30,13 @@ export function setLang(l) {
 }
 
 export function applyTheme() {
-  const theme = load().theme || 'light';
+  const theme = load().theme || 'dark';
   document.body.dataset.theme = theme;
   document.getElementById('themeToggle').textContent = theme === 'light' ? '🌙' : '☀️';
 }
 
 export function toggleTheme() {
-  const next = (load().theme || 'light') === 'light' ? 'dark' : 'light';
+  const next = (load().theme || 'dark') === 'light' ? 'dark' : 'light';
   save({ theme: next });
   applyTheme();
 }
