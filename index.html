@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ЕНТ-Спринт: 80/20</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Шапка: логотип, переключатель RU/KZ, переключатель темы -->
+  <header class="topbar">
+    <a href="#/home" class="logo">⚡ <span data-i18n="appTitle">ЕНТ-Спринт</span> <span class="logo-tag">80/20</span></a>
+    <div class="topbar-actions">
+      <div class="lang-toggle" id="langToggle">
+        <button data-lang="ru">RU</button>
+        <button data-lang="kz">KZ</button>
+      </div>
+      <button id="themeToggle" class="theme-btn" title="theme">🌙</button>
+    </div>
+  </header>
+
+  <!-- Сюда рендерится активная страница (SPA, hash-роутинг) -->
+  <main id="app"></main>
+
+  <!-- Нижняя навигация (мобильный-first) -->
+  <nav class="tabbar" id="tabbar">
+    <a href="#/home" data-tab="home">🏠<span data-i18n="navHome">Главная</span></a>
+    <a href="#/sprint" data-tab="sprint">⚡<span data-i18n="navSprint">Спринт</span></a>
+    <a href="#/cards" data-tab="cards">🃏<span data-i18n="navCards">Карточки</span></a>
+    <a href="#/howto" data-tab="howto">📚<span data-i18n="navHowto">Как учиться</span></a>
+    <a href="#/resources" data-tab="resources">🔗<span data-i18n="navResources">Ресурсы</span></a>
+    <a href="#/profile" data-tab="profile">👤<span data-i18n="navProfile">Профиль</span></a>
+  </nav>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
